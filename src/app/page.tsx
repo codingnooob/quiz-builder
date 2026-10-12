@@ -14,7 +14,7 @@ const formats = ['PDF', 'Word', 'PowerPoint', 'TXT', 'Markdown', 'HTML', 'Images
 const faq = [
   {
     q: 'Which files can I upload?',
-    a: 'PDF, Word, PowerPoint, plain text, Markdown, HTML and images (scans or photos of pages), up to 25 MB per file. Very long documents are trimmed, and you are told when that happens.',
+    a: 'PDF, Word, PowerPoint, plain text, Markdown, HTML and images (scans or photos of pages), up to 50 MB per file. Very long documents are trimmed, and you are told when that happens.',
   },
   {
     q: 'How do I choose the number of questions?',
@@ -95,7 +95,7 @@ export default function Home() {
                 ))}
               </ul>
               <p className="mt-3 text-sm leading-6 text-stone-700">
-                Up to 25 MB per file. Quizzes in any language. PDFs for questions and answers, separately.
+                Up to 50 MB per file. Quizzes in any language. PDFs for questions and answers, separately.
               </p>
             </div>
           </div>

@@ -65,8 +65,10 @@ const normalize = (t: string) =>
 
 export class UnsupportedFileError extends Error {}
 
+export type DocumentSource = { name: string; type: string; arrayBuffer(): Promise<ArrayBuffer>; text(): Promise<string> };
+
 /** Plain text of an uploaded document. PDFs and images are read by the built-in scanner (`storedKey` = the stored file). */
-export async function extractText(file: File, storedKey: string): Promise<string> {
+export async function extractText(file: DocumentSource, storedKey: string): Promise<string> {
   const name = file.name.toLowerCase();
   const ext = name.includes('.') ? name.split('.').pop()! : '';
   const type = file.type;

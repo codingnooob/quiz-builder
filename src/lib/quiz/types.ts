@@ -25,7 +25,9 @@ export const COMMON_LANGUAGES = [
 ] as const;
 
 export const MAX_LANGUAGES = 4;
-export const MAX_FILE_BYTES = 25_000_000;
+export const MAX_FILE_BYTES = 50_000_000;
+/** Files above this go straight from the browser to storage; smaller ones are posted to the route. */
+export const DIRECT_UPLOAD_BYTES = 20_000_000;
 export const MAX_TEXT_CHARS = 400_000;
 export const MAX_SECTIONS = 30;
 export const MAX_PER_SECTION = 15;

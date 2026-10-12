@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 
 import { rememberQuiz } from '@/components/recent-quizzes';
 import { button, input } from '@/components/ui';
+import { DIRECT_UPLOAD_BYTES, MAX_FILE_BYTES } from '@/lib/quiz/types';
 
 const ACCEPT = '.pdf,.docx,.pptx,.txt,.md,.markdown,.html,.htm,.csv,.png,.jpg,.jpeg,.webp';
 
@@ -29,10 +30,30 @@ export function UploadForm() {
     setBusy(true);
     setError('');
     try {
-      const body = new FormData();
-      body.set('file', file);
-      if (sections) body.set('sections', sections);
-      const res = await fetch('/api/quizzes', { method: 'POST', body });
+      if (file.size > MAX_FILE_BYTES) throw new Error('The file is too large (50 MB maximum).');
+      let res: Response;
+      if (file.size > DIRECT_UPLOAD_BYTES) {
+        // Large file: the browser sends it straight to storage, then the route reads the stored copy.
+        const slot = await fetch('/api/quizzes/upload-url', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ name: file.name, type: file.type, size: file.size }),
+        });
+        const slotJson = (await slot.json().catch(() => null)) as { ok: boolean; error?: string; data?: { uploadUrl: string; key: string; headers: Record<string, string> } } | null;
+        if (!slot.ok || !slotJson?.ok || !slotJson.data) throw new Error(slotJson?.error ?? 'The upload failed. Please try again.');
+        const put = await fetch(slotJson.data.uploadUrl, { method: 'PUT', headers: { 'content-type': slotJson.data.headers['content-type'] ?? 'application/octet-stream' }, body: file });
+        if (!put.ok) throw new Error('The upload failed. Please try again.');
+        res = await fetch('/api/quizzes', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ key: slotJson.data.key, sections: sections || undefined }),
+        });
+      } else {
+        const body = new FormData();
+        body.set('file', file);
+        if (sections) body.set('sections', sections);
+        res = await fetch('/api/quizzes', { method: 'POST', body });
+      }
       const json = (await res.json().catch(() => null)) as { ok: boolean; error?: string; data?: { id: string; title: string } } | null;
       if (!res.ok || !json?.ok || !json.data) throw new Error(json?.error ?? 'The upload failed. Please try again.');
       rememberQuiz(json.data.id, json.data.title);
@@ -75,7 +96,7 @@ export function UploadForm() {
         ) : (
           <p className="font-display text-lg font-semibold">Drop a document here</p>
         )}
-        <p className="text-sm text-stone-600">PDF, Word, PowerPoint, TXT, Markdown, HTML or an image · up to 25 MB</p>
+        <p className="text-sm text-stone-600">PDF, Word, PowerPoint, TXT, Markdown, HTML or an image · up to 50 MB</p>
         <input ref={inputRef} type="file" accept={ACCEPT} className="sr-only" name="file" onChange={(e) => pick(e.target.files?.[0])} />
         <button type="button" className={button.secondary} onClick={() => inputRef.current?.click()} disabled={busy}>
           {file ? 'Choose another file' : 'Choose a file'}
