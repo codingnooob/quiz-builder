@@ -4,18 +4,13 @@ import { z } from 'zod';
 import { model } from '@/agents/model';
 import { AI_MODELS } from '@/lib/ai-models';
 
+import { jsonWithOwnKey, type ByokConfig } from './byok';
+import { questionPrompt } from './prompt';
 import type { Difficulty, QuestionContent } from './types';
 
 const SECTION_CHARS = 60_000;
 
 export type GeneratedQuestion = { difficulty: 'easy' | 'medium' | 'hard'; correctIndex: number; content: QuestionContent };
-
-const DIFFICULTY_HELP: Record<Difficulty, string> = {
-  easy: 'All questions easy: direct recall of key facts and definitions.',
-  medium: 'All questions medium: understanding and applying the ideas, not just recalling words.',
-  hard: 'All questions hard: analysis, comparison, edge cases and subtle distinctions; plausible distractors.',
-  mixed: 'A mix of easy, medium and hard questions (roughly a third each); tag each question with its level.',
-};
 
 function shuffle<T>(items: T[]): T[] {
   const a = [...items];
@@ -26,61 +21,25 @@ function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
+const translationSchema = z.object({
+  language: z.string(),
+  question: z.string(),
+  correctAnswer: z.string(),
+  wrongAnswers: z.array(z.string()),
+  explanation: z.string(),
+});
+export const rawQuestionsSchema = z.object({
+  questions: z.array(z.object({ difficulty: z.enum(['easy', 'medium', 'hard']).catch('medium'), translations: z.array(translationSchema) })),
+});
+export type RawQuestion = z.infer<typeof rawQuestionsSchema>['questions'][number];
+
 /**
- * Multiple-choice questions for one chapter, written in every requested language at once so the questions and the
- * answer positions match across languages. The model writes the correct answer first; the server shuffles the order.
+ * Checks what a model wrote and turns it into stored questions: drops any question missing a language or an answer,
+ * and shuffles the answers (the model writes the correct one first) with one order shared by every language.
  */
-async function generateChunk(opts: {
-  title: string;
-  content: string;
-  count: number;
-  difficulty: Difficulty;
-  languages: string[];
-  /** this call writes part `k` of `n`; the other parts are written by other calls */
-  part?: { k: number; n: number };
-}): Promise<GeneratedQuestion[]> {
-  const { title, count, difficulty, languages } = opts;
-  const text = opts.content;
-  const schema = z.object({
-    questions: z.array(
-      z.object({
-        difficulty: z.enum(['easy', 'medium', 'hard']),
-        translations: z.array(
-          z.object({
-            language: z.string(),
-            question: z.string(),
-            correctAnswer: z.string(),
-            wrongAnswers: z.array(z.string()),
-            explanation: z.string(),
-          }),
-        ),
-      }),
-    ),
-  });
-  const { object } = await generateObject({
-    model: model(AI_MODELS.questions),
-    maxRetries: 1,
-    maxOutputTokens: 8000,
-    schema,
-    prompt: `You write multiple-choice quiz questions from study material.
-
-Chapter: "${title}"
-Write exactly ${count} questions about the material below, covering different parts of it and never repeating a point.
-${DIFFICULTY_HELP[difficulty]}
-${opts.part ? `This is set ${opts.part.k + 1} of ${opts.part.n}; other sets are written separately, so favour the ${opts.part.k + 1}${['st', 'nd', 'rd'][opts.part.k] ?? 'th'} of ${opts.part.n} equal portions of the material to avoid overlapping.\n` : ''}Rules:
-- Use only facts stated in the material; every question must be answerable from it without outside knowledge or the text itself being at hand ("According to the text…" is not allowed).
-- Exactly one correct answer ("correctAnswer") and exactly 3 plausible but clearly wrong answers ("wrongAnswers"); keep them similar in length. Do not use "all of the above" or "none of the above".
-- "explanation": one or two sentences saying why the answer is correct.
-- Each question must have one entry in "translations" for each of these languages, in this order: ${languages.map((l) => `"${l}"`).join(', ')}. All entries of a question must say exactly the same thing, written naturally in that language, and "language" must be the name exactly as listed.
-
-Material:
-"""
-${text}
-"""`,
-  });
-
+export function finalizeQuestions(raw: RawQuestion[], languages: string[], count: number): GeneratedQuestion[] {
   const out: GeneratedQuestion[] = [];
-  for (const q of object.questions) {
+  for (const q of raw) {
     const byLang = new Map(q.translations.map((t) => [t.language.trim().toLowerCase(), t]));
     const entries = languages.map((l) => byLang.get(l.toLowerCase()));
     if (entries.some((e) => !e || !e.question.trim() || !e.correctAnswer.trim() || e.wrongAnswers.filter((w) => w.trim()).length < 3)) continue;
@@ -89,12 +48,40 @@ ${text}
     const content: QuestionContent = {};
     languages.forEach((l, i) => {
       const e = entries[i]!;
-      const options = [e.correctAnswer.trim(), ...e.wrongAnswers.slice(0, 3).map((w) => w.trim())];
-      content[l] = { question: e.question.trim(), options: order.map((o) => options[o]!), explanation: e.explanation.trim() };
+      const options = [e.correctAnswer, ...e.wrongAnswers.filter((w) => w.trim()).slice(0, 3)].map((o) => o.trim().slice(0, 400));
+      content[l] = { question: e.question.trim().slice(0, 600), options: order.map((o) => options[o]!), explanation: e.explanation.trim().slice(0, 800) };
     });
     out.push({ difficulty: q.difficulty, correctIndex: order.indexOf(0), content });
   }
   return out.slice(0, count);
+}
+
+/**
+ * Multiple-choice questions for one chapter, written in every requested language at once so the questions and the
+ * answer positions match across languages.
+ */
+async function generateChunk(opts: {
+  title: string;
+  content: string;
+  count: number;
+  difficulty: Difficulty;
+  languages: string[];
+  part?: { k: number; n: number };
+  byok?: ByokConfig;
+}): Promise<GeneratedQuestion[]> {
+  const prompt = questionPrompt(opts);
+  const object = opts.byok
+    ? rawQuestionsSchema.parse(await jsonWithOwnKey(opts.byok, prompt))
+    : (
+        await generateObject({
+          model: model(AI_MODELS.questions),
+          maxRetries: 1,
+          maxOutputTokens: 8000,
+          schema: rawQuestionsSchema,
+          prompt,
+        })
+      ).object;
+  return finalizeQuestions(object.questions, opts.languages, opts.count);
 }
 
 // A call writes at most this many question texts (questions × languages): longer answers are slow and get cut off.
@@ -110,6 +97,8 @@ export async function generateQuestions(opts: {
   count: number;
   difficulty: Difficulty;
   languages: string[];
+  /** the visitor's own provider, when they brought a key */
+  byok?: ByokConfig;
 }): Promise<GeneratedQuestion[]> {
   const text = opts.content.slice(0, SECTION_CHARS);
   const perCall = Math.max(1, Math.floor(UNITS_PER_CALL / opts.languages.length));

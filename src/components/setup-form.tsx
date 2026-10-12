@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
+import { AiSourcePicker, defaultAiSource, type AiSource } from '@/components/ai-source';
 import { button, Card, input } from '@/components/ui';
+import { loadEngine, writeChapter, type DeviceInfo, type LocalEngine, type Material } from '@/lib/quiz/browser-llm';
 import { COMMON_LANGUAGES, DIFFICULTIES, MAX_LANGUAGES, MAX_PER_SECTION, MAX_TOTAL } from '@/lib/quiz/types';
 
 type Section = { id: string; title: string; chars: number; preview: string };
@@ -27,6 +29,11 @@ export function SetupForm({ quizId, sections, initial, truncated }: { quizId: st
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<Record<string, Status>>({});
   const [plan, setPlan] = useState<{ id: string; questions: number }[]>([]);
+  const [source, setSource] = useState<AiSource>(defaultAiSource);
+  const [device, setDevice] = useState<DeviceInfo | null>(null);
+  const [note, setNote] = useState('');
+  const stopped = useRef({ stopped: false });
+  const engine = useRef<{ id: string; engine: LocalEngine } | null>(null);
 
   const kept = chapters.filter((c) => c.included);
   const toggleLanguage = (l: string) =>
@@ -37,9 +44,12 @@ export function SetupForm({ quizId, sections, initial, truncated }: { quizId: st
     setOther('');
   };
 
+  const ownKeyHeaders = (): Record<string, string> =>
+    source.kind === 'key' ? { 'x-ai-key': source.apiKey.trim(), 'x-ai-base-url': source.baseUrl.trim(), 'x-ai-model': source.model.trim() } : {};
+
   async function generateOne(sectionId: string): Promise<boolean> {
     for (let attempt = 0; attempt < 4; attempt++) {
-      const res = await fetch(`/api/quizzes/${quizId}/sections/${sectionId}/generate`, { method: 'POST' });
+      const res = await fetch(`/api/quizzes/${quizId}/sections/${sectionId}/generate`, { method: 'POST', headers: ownKeyHeaders() });
       if (res.ok) return true;
       if (res.status === 429) {
         await sleep((Number(res.headers.get('retry-after')) || 20) * 1000);
@@ -49,22 +59,70 @@ export function SetupForm({ quizId, sections, initial, truncated }: { quizId: st
       setError(json?.error ?? 'Something went wrong while writing the questions.');
       return false;
     }
-    setError('Too many requests right now. Wait a minute, then retry the chapters that failed.');
+    setError(source.kind === 'key' ? 'Your AI provider keeps saying it is too busy. Wait a minute, then retry the chapters that failed.' : 'Too many requests right now. Wait a minute, then retry the chapters that failed.');
     return false;
+  }
+
+  // On this device: the model writes in this browser, then the questions are sent to be checked and saved.
+  async function generateOnDevice(sectionId: string): Promise<boolean> {
+    try {
+      const eng = engine.current!.engine;
+      const mat = await fetch(`/api/quizzes/${quizId}/sections/${sectionId}/material`);
+      const matJson = (await mat.json().catch(() => null)) as { ok: boolean; data?: Material } | null;
+      if (!mat.ok || !matJson?.data) throw new Error('Could not read the chapter.');
+      if (matJson.data.count < 1) return true;
+      const raw = await writeChapter(eng, matJson.data, (done, total) => setNote(`${matJson.data!.title}: ${done} of ${total} parts written`), stopped.current);
+      if (stopped.current.stopped) return false;
+      const res = await fetch(`/api/quizzes/${quizId}/sections/${sectionId}/questions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(raw) });
+      if (res.ok) return true;
+      const json = (await res.json().catch(() => null)) as { error?: string } | null;
+      setError(json?.error ?? 'The questions could not be saved.');
+      return false;
+    } catch (err) {
+      console.error('on-device writing failed', err);
+      setError('The on-device model stopped before finishing. Retry, pick a smaller model, or use another option.');
+      return false;
+    }
+  }
+
+  async function prepareDevice(): Promise<boolean> {
+    if (engine.current?.id === source.localModel) return true;
+    try {
+      await engine.current?.engine.unload().catch(() => undefined);
+      engine.current = null;
+      setNote('Starting the model…');
+      const eng = await loadEngine(source.localModel, setNote);
+      engine.current = { id: source.localModel, engine: eng };
+      setNote('');
+      return true;
+    } catch (err) {
+      console.error('model load failed', err);
+      setNote('');
+      setError('The model could not start on this device (it may have run out of memory). Try the Small model, close other heavy tabs, or choose another option.');
+      return false;
+    }
   }
 
   async function runSections(list: { id: string }[]) {
     setRunning(true);
     setProgress((p) => ({ ...p, ...Object.fromEntries(list.map((s) => [s.id, 'waiting' as Status])) }));
     const queue = [...list];
+    const onDevice = source.kind === 'device';
+    if (onDevice && !(await prepareDevice())) {
+      setProgress((p) => ({ ...p, ...Object.fromEntries(list.map((s) => [s.id, 'failed' as Status])) }));
+      setRunning(false);
+      return;
+    }
     const worker = async () => {
       for (let s = queue.shift(); s; s = queue.shift()) {
         setProgress((p) => ({ ...p, [s.id]: 'working' }));
-        const ok = await generateOne(s.id);
+        const ok = await (onDevice ? generateOnDevice(s.id) : generateOne(s.id));
         setProgress((p) => ({ ...p, [s.id]: ok ? 'done' : 'failed' }));
       }
     };
-    await Promise.all([worker(), worker()]);
+    // the built-in AI and your own key write two chapters at once; a model on this device writes one at a time
+    await Promise.all(onDevice ? [worker()] : [worker(), worker()]);
+    setNote('');
     setRunning(false);
   }
 
@@ -73,6 +131,9 @@ export function SetupForm({ quizId, sections, initial, truncated }: { quizId: st
     setError('');
     if (kept.length === 0) return setError('Keep at least one chapter.');
     if (languages.length === 0) return setError('Choose at least one language.');
+    if (source.kind === 'key' && source.apiKey.trim().length < 8) return setError('Paste your API key, or choose another way to write the questions.');
+    if (source.kind === 'key' && (!source.model.trim() || !source.baseUrl.trim())) return setError('Enter the provider address and the model name.');
+    stopped.current.stopped = false;
     const n = Number(count);
     const max = countMode === 'total' ? MAX_TOTAL : MAX_PER_SECTION;
     if (!Number.isInteger(n) || n < 1 || n > max) return setError(`Choose between 1 and ${max} questions.`);
@@ -105,8 +166,9 @@ export function SetupForm({ quizId, sections, initial, truncated }: { quizId: st
             <div className="h-full rounded-full bg-accent shadow-[inset_0_0_0_1px_oklch(0.33_0.085_255/0.25)] transition-all" style={{ width: `${(doneCount / plan.length) * 100}%` }} />
           </div>
           <p className="text-sm text-stone-600">
-            {doneCount} of {plan.length} chapters done{running ? ' — this takes a little while, keep this page open.' : '.'}
+            {doneCount} of {plan.length} chapters done{running ? (source.kind === 'device' ? ' — on-device writing is slow; keep this tab open and in front.' : ' — this takes a little while, keep this page open.') : '.'}
           </p>
+          {note && <p className="text-sm text-brand" data-testid="device-note">{note}</p>}
           <ul className="grid gap-2">
             {plan.map((p) => {
               const c = chapters.find((x) => x.id === p.id)!;
@@ -138,6 +200,18 @@ export function SetupForm({ quizId, sections, initial, truncated }: { quizId: st
                   }}
                 >
                   Retry the failed chapters
+                </button>
+              )}
+              {anyFailed && (
+                <button
+                  className={button.secondary}
+                  onClick={() => {
+                    setError('');
+                    setPlan([]);
+                    setProgress({});
+                  }}
+                >
+                  Change the settings
                 </button>
               )}
             </div>
@@ -263,6 +337,10 @@ export function SetupForm({ quizId, sections, initial, truncated }: { quizId: st
             Add
           </button>
         </div>
+      </Card>
+
+      <Card title="4. Who writes the questions?">
+        <AiSourcePicker value={source} onChange={setSource} device={device} onDevice={setDevice} />
       </Card>
 
       {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>}

@@ -13,6 +13,10 @@ const formats = ['PDF', 'Word', 'PowerPoint', 'TXT', 'Markdown', 'HTML', 'Images
 
 const faq = [
   {
+    q: 'Can I use my own AI key, or keep the questions private?',
+    a: 'Yes. On the setup step you can have the questions written with your own AI key (paid to your provider, never stored here) or by a small model running in your browser, so chapter text is not sent to an AI provider. The on-device option is slower and its questions are simpler and less reliable, especially outside English. Your document is still uploaded and split into chapters either way.',
+  },
+  {
     q: 'Which files can I upload?',
     a: 'PDF, Word, PowerPoint, plain text, Markdown, HTML and images (scans or photos of pages), up to 50 MB per file. Very long documents are trimmed, and you are told when that happens.',
   },
