@@ -83,7 +83,8 @@ export function UploadForm() {
       </div>
 
       <label className="block text-sm">
-        <span className="font-semibold">Number of chapters</span> <span className="text-stone-600">(optional — leave empty to detect them automatically)</span>
+        <span className="block font-semibold">Number of chapters <span className="font-normal text-stone-600">(optional)</span></span>
+        <span className="block text-stone-600">Leave empty to detect them automatically.</span>
         <input
           type="number"
           min={1}
