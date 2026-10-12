@@ -15,6 +15,13 @@
       "when": 1790618659451,
       "tag": "0001_email_key",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1791769329075,
+      "tag": "0002_true_aqueduct",
+      "breakpoints": true
     }
   ]
 }

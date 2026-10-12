@@ -5,12 +5,12 @@ import type { ReactNode } from 'react';
 
 export const button = {
   primary:
-    'inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50',
+    'inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand/90 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
   secondary:
-    'inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 transition-colors hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50',
+    'inline-flex items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition-colors hover:border-brand hover:text-brand focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
 };
 export const input =
-  'mt-1.5 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20';
+  'mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/20';
 
 /** An app page: the soft surface, the title row (title, one line, the main action), then the content. */
 export function AppPage(props: {
@@ -20,12 +20,12 @@ export function AppPage(props: {
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-[70dvh] bg-zinc-50">
+    <div className="min-h-[70dvh] bg-paper">
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="min-w-0">
-            <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{props.title}</h1>
-            {props.description && <p className="mt-1 text-zinc-600">{props.description}</p>}
+            <h1 className="font-display text-2xl font-semibold tracking-tight text-brand sm:text-3xl">{props.title}</h1>
+            {props.description && <p className="mt-1 text-stone-600">{props.description}</p>}
           </div>
           {props.action}
         </div>
@@ -44,11 +44,11 @@ export function Card(props: {
 }) {
   return (
     <section
-      className={`min-w-0 rounded-xl border border-zinc-200 bg-white shadow-sm ${props.className ?? ''}`}
+      className={`min-w-0 rounded-2xl border border-stone-200 bg-white shadow-[0_1px_0_oklch(0.33_0.085_255/0.04),0_8px_24px_-12px_oklch(0.33_0.085_255/0.18)] ${props.className ?? ''}`}
     >
       {props.title && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3 sm:px-6">
-          <h2 className="font-medium">{props.title}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-4 py-3 sm:px-6">
+          <h2 className="font-display text-lg font-semibold text-brand">{props.title}</h2>
           {props.action}
         </div>
       )}
@@ -60,10 +60,10 @@ export function Card(props: {
 /** One figure of a dashboard: put 2–4 in `grid gap-4 sm:grid-cols-2 lg:grid-cols-4`. */
 export function Stat(props: { label: ReactNode; value: ReactNode; hint?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-      <p className="text-sm text-zinc-500">{props.label}</p>
+    <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm">
+      <p className="text-sm text-stone-500">{props.label}</p>
       <p className="mt-2 text-3xl font-semibold tabular-nums">{props.value}</p>
-      {props.hint && <p className="mt-1 text-sm text-zinc-500">{props.hint}</p>}
+      {props.hint && <p className="mt-1 text-sm text-stone-500">{props.hint}</p>}
     </div>
   );
 }
@@ -73,7 +73,7 @@ const tones = {
   amber: 'bg-amber-50 text-amber-800 ring-amber-600/20',
   red: 'bg-red-50 text-red-700 ring-red-600/20',
   blue: 'bg-sky-50 text-sky-700 ring-sky-600/20',
-  gray: 'bg-zinc-100 text-zinc-600 ring-zinc-500/20',
+  gray: 'bg-stone-100 text-stone-600 ring-stone-500/20',
 };
 /** A status pill: green = done/paid, amber = pending, red = overdue/failed, blue = new/in progress, gray = draft. */
 export function Badge(props: { tone?: keyof typeof tones; children: ReactNode }) {
@@ -103,7 +103,7 @@ export function EmptyState(props: { title: ReactNode; text?: ReactNode; action?:
         </svg>
       </div>
       <p className="mt-4 font-medium">{props.title}</p>
-      {props.text && <p className="mt-1 max-w-sm text-sm text-zinc-600">{props.text}</p>}
+      {props.text && <p className="mt-1 max-w-sm text-sm text-stone-600">{props.text}</p>}
       {props.action && <div className="mt-5">{props.action}</div>}
     </div>
   );

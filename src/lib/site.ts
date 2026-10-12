@@ -1,7 +1,7 @@
 // The app's name and header links, in one place: the header, the footer and every page title read them.
 export const site = {
-  name: 'New Totalum app',
-  description: 'Built with Totalum',
+  name: 'Quiz Builder',
+  description: 'Turn any document into an interactive quiz. Split it into chapters, choose the number of questions, difficulty and languages, then take it online or download questions and answers as separate PDFs.',
   /** The logo image's URL (the user's file): the header, the footer and the browser icon show it. Empty: the name alone. */
   logo: '',
   /**
@@ -28,9 +28,12 @@ export const site = {
   /** The owner's and staff's addresses for admin pages: one counts only once its account verified the e-mail (`isAdmin`, `@/lib/admin`). */
   admins: [] as string[],
   /** Links everyone sees (landing sections, public pages). */
-  nav: [] as { href: string; label: string }[],
+  nav: [
+    { href: '/#how-it-works', label: 'How it works' },
+    { href: '/#faq', label: 'FAQ' },
+  ] as { href: string; label: string }[],
   /** Links only signed-in users see (dashboard, lists, admin). */
-  appNav: [{ href: '/account', label: 'Account' }] as { href: string; label: string }[],
+  appNav: [] as { href: string; label: string }[],
 };
 
 /** The header and footer appear once the app has something to put in them: links or accounts (a one-page "hello" has neither). */

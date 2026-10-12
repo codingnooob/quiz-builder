@@ -1,9 +1,11 @@
 @import 'tailwindcss';
 
-/* The project's design tokens (colours, radius): see _system-docs/design.md. */
+/* The project's design tokens: ink-blue brand, highlighter-yellow accent, warm paper. See _system-docs/design.md. */
 @theme {
-  --color-brand: oklch(0.55 0.2 260);
-  --color-accent: oklch(0.75 0.15 70);
+  --color-brand: oklch(0.33 0.085 255);
+  --color-accent: oklch(0.89 0.17 98);
+  --color-paper: oklch(0.975 0.014 90);
+  --radius-card: 1rem;
 }
 
 /*
@@ -14,4 +16,23 @@
 @theme inline {
   --font-sans: var(--font-body, ui-sans-serif), system-ui, sans-serif;
   --font-display: var(--font-heading, var(--font-body, ui-sans-serif)), system-ui, sans-serif;
+}
+
+/* The highlighter stroke under a few words, like a marked-up study sheet. */
+.highlight {
+  background-image: linear-gradient(transparent 58%, var(--color-accent) 58%, var(--color-accent) 92%, transparent 92%);
+  color: inherit;
+  padding: 0 0.12em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* Notebook rules behind the hero, fading out towards the bottom. */
+.ruled {
+  background-image: repeating-linear-gradient(to bottom, transparent 0 35px, oklch(0.33 0.085 255 / 0.07) 35px 36px);
+  mask-image: linear-gradient(to bottom, black 55%, transparent);
+}
+
+summary::-webkit-details-marker {
+  display: none;
 }
