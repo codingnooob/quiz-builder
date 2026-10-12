@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Loading…</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        font-family: system-ui, sans-serif;
+        background: #fff;
+        color: #111;
+      }
+    </style>
+    <script src="config.js"></script>
+  </head>
+  <body>
+    <p>Loading…</p>
+    <script>
+      // Hybrid shell (plan 06 §14.1): the published site is the app; this page only bridges to it.
+      location.replace(navigator.onLine ? window.TOTALUM_REMOTE_URL : 'offline.html');
+    </script>
+  </body>
+</html>

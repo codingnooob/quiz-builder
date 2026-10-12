@@ -1,0 +1,23 @@
+// Platform-owned (plan 06 §4.1). `main` is `worker.ts`: OpenNext's Worker inside the D1 read-replica session (A3.23). PGM reads only compatibility_date, compatibility_flags and assets from here and
+// templates every binding per script (TOTALUM_DB → the dev or live D1, ASSETS, vars). The D1 below is for local
+// runs and tests only. Never add kv_namespaces, durable_objects, queues, r2_buckets, services, workflows, browser,
+// ai or hyperdrive (publish check FORBIDDEN_BINDING; no Durable Object class in a user Worker, A6.33).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "totalum-app",
+  "main": "worker.ts",
+  "compatibility_date": "2026-08-15",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // no esbuild `__name` wrapper: a function a page stringifies into an inline <script> would call it in the browser
+  "keep_names": false,
+  "assets": { "binding": "ASSETS", "directory": ".open-next/assets" },
+  "vars": { "TOTALUM_ENV": "live" },
+  "d1_databases": [
+    {
+      "binding": "TOTALUM_DB",
+      "database_name": "local",
+      "database_id": "local",
+      "migrations_dir": "drizzle",
+    },
+  ],
+}

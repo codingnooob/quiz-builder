@@ -1,0 +1,11 @@
+node_modules
+.next
+.open-next
+.wrangler
+package-lock.json
+drizzle
+_system-docs
+android
+ios
+mobile/shell/dist
+mobile-artifacts

@@ -1,0 +1,82 @@
+{
+  "name": "nextjs-startum-template-v2",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The starter every Totalum v2 customer project is copied from",
+  "type": "module",
+  "packageManager": "npm@10.9.8",
+  "engines": {
+    "node": ">=22 <23",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "predev": "node scripts/stop-dev.mjs",
+    "dev": "tsx scripts/migrate.ts --dev-server && TOTALUM_USAGE_ENV=dev NEXT_TELEMETRY_DISABLED=1 next dev -p ${PORT:-3100}",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
+    "start": "NEXT_TELEMETRY_DISABLED=1 next start -p ${PORT:-3000} -H 0.0.0.0",
+    "check-types-errors": "tsc --noEmit",
+    "check-worker-safe": "node scripts/check-worker-safe.mjs",
+    "build:preview": "node scripts/build-preview.mjs",
+    "check": "node scripts/stop-dev.mjs && node scripts/build-preview.mjs --check",
+    "cloudflare-build:preview": "node scripts/build-preview.mjs",
+    "db:generate": "node scripts/db-generate.mjs",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:sql": "tsx scripts/sql.ts",
+    "db:schema": "tsx scripts/db-schema.ts",
+    "try:form": "node scripts/try-form.mjs",
+    "logs": "tsx scripts/logs.ts",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "mobile:setup": "node scripts/mobile-setup.mjs",
+    "build:mobile": "node scripts/mobile-build.mjs",
+    "mobile:store": "node scripts/mobile-store.mjs",
+    "mobile:enable": "node scripts/mobile-enable.mjs",
+    "mobile:logs": "node scripts/mobile-logs.mjs",
+    "mobile:status": "node scripts/mobile-logs.mjs --status"
+  },
+  "dependencies": {
+    "@libsql/client": "0.18.0",
+    "@openrouter/ai-sdk-provider": "3.1.0",
+    "ai": "7.0.109",
+    "better-auth": "1.7.5",
+    "drizzle-orm": "0.45.3",
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "totalum-sdk": "1.11.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@cloudflare/workers-types": "5.20260924.1",
+    "@eslint/js": "10.0.1",
+    "@opennextjs/cloudflare": "1.20.9",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.20.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "drizzle-kit": "0.31.11",
+    "eslint": "10.11.0",
+    "eslint-plugin-import-x": "4.17.1",
+    "eslint-plugin-no-only-tests": "3.4.0",
+    "miniflare": "5.20260921.1-alpha",
+    "prettier": "3.9.9",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-eslint": "8.70.1",
+    "vitest": "4.1.11",
+    "wrangler": "4.138.0"
+  },
+  "overrides": {
+    "sharp": "0.35.5",
+    "undici": "7.29.1",
+    "source-map-js": "1.2.2"
+  },
+  "prettier": {
+    "printWidth": 110,
+    "singleQuote": true,
+    "trailingComma": "all"
+  }
+}

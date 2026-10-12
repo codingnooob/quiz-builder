@@ -1,0 +1,52 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "ES2023"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "types": ["node", "@cloudflare/workers-types/experimental"],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mjs",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    ".next/dev/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "worker.ts",
+    ".next",
+    ".open-next",
+    "_system-docs",
+    "test/workerd",
+    "android",
+    "ios",
+    "capacitor.config.ts",
+    "capacitor.config.*.ts",
+    "mobile",
+    "store",
+    "out",
+    ".next-mobile",
+    "mobile-artifacts"
+  ]
+}

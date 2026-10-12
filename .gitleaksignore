@@ -1,0 +1,6 @@
+# gitleaks baseline (plan 21 P5): findings of the full-history scan on 2026-09-25, each reviewed and not a real
+# credential (fake test tokens, recorded fixture ids, resource ids, identifiers). CI fails on anything new.
+# A new false positive: add its fingerprint (commit:file:rule:line) from the CI log, or `gitleaks:allow` on the line.
+aaf0577f028662736c691d819cde8711f5d4f3f5:test/workerd/vitest.config.ts:generic-api-key:37
+d53ea81501f0adcaaad5777f3a1967875cfb2ecc:test/workerd/vitest.config.ts:generic-api-key:30
+e46785ca0eb8145c8ff88e719d53cfe1610c9bfa:test/workerd/app.test.ts:generic-api-key:233
